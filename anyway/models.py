@@ -1034,6 +1034,20 @@ class ColumnsDescription(Base):
     provider_code = Column(Integer(), primary_key=True, index=True)
     column_description = Column(Text(), nullable=True)
 
+class TrafficVolume(Base):
+    __tablename__ = "traffic_volume"
+    id = Column(Integer(), primary_key=True, index=True)
+    year = Column(Integer())
+    road = Column(Integer())
+    section = Column(Integer())
+    lane = Column(Integer())
+    month = Column(Integer())
+    day = Column(Integer())
+    day_of_week = Column(Integer())
+    hour = Column(Integer())
+    volume = Column(Integer())
+    status = Column(Integer())
+
 class PoliceUnit(Base):
     __tablename__ = "police_unit"
     id = Column(Integer(), primary_key=True, index=True)
@@ -1517,3 +1531,13 @@ class AccidentMarkerView(Base):
     x = Column(Float())
     y = Column(Float())
 
+class RoadSegments(Base):
+    __tablename__ = "road_segments"
+    id = Column(Integer(), primary_key=True)
+    segment_id = Column(Integer())
+    road = Column(Integer())
+    segment = Column(Integer())
+    from_km = Column(Float())
+    from_name = Column(Text())
+    to_km = Column(Float())
+    to_name = Column(Text())

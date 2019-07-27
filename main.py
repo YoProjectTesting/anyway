@@ -86,6 +86,13 @@ def registered_vehicles(specific_folder, delete_all, path):
 
 
 @process.command()
+@click.option('--path', type=str, default="static/data/traffic_volume")
+def traffic_volume(path):
+    from anyway.parsers.traffic_volume import main
+    return main(path)
+
+
+@process.command()
 @click.option('--light', is_flag=True, help='Import without downloading any new files')
 @click.option('--username', default='')
 @click.option('--password', default='')
@@ -100,6 +107,12 @@ def united(light, username, password, lastmail):
 @click.argument("filename")
 def rsa(filename):
     from anyway.parsers.rsa import parse
+    return parse(filename)
+
+@process.command()
+@click.argument("filename", type=str, default="static/data/segments/road_segments.xlsx")
+def road_segments(filename):
+    from anyway.parsers.road_segments import parse
     return parse(filename)
 
 @process.command()
