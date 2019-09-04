@@ -1,15 +1,13 @@
 /**
  * @name MarkerClustererPlus for Google Maps V3
- * @version 2.1.2 [May 28, 2014]
+ * @version 2.1.11
  * @author Gary Little
  * @fileoverview
  * The library creates and manages per-zoom-level clusters for large amounts of markers.
  * <p>
- * This is an enhanced V3 implementation of the
- * <a href="http://gmaps-utility-library-dev.googlecode.com/svn/tags/markerclusterer/"
- * >V2 MarkerClusterer</a> by Xiaoxi Wu. It is based on the
- * <a href="http://google-maps-utility-library-v3.googlecode.com/svn/tags/markerclusterer/"
- * >V3 MarkerClusterer</a> port by Luke Mahe. MarkerClustererPlus was created by Gary Little.
+ * This is an enhanced V3 implementation of the V2 MarkerClusterer by Xiaoxi Wu. It is
+ * based on the V3 MarkerClusterer port by Luke Mahe. MarkerClustererPlus was created
+ * by Gary Little.
  * <p>
  * v2.0 release: MarkerClustererPlus v2.0 is backward compatible with MarkerClusterer v1.0. It
  *  adds support for the <code>ignoreHidden</code>, <code>title</code>, <code>batchSizeIE</code>,
@@ -116,6 +114,9 @@ ClusterIcon.prototype.onAdd = function () {
   var cClusterIcon = this;
   var cMouseDownInCluster;
   var cDraggingMapByCluster;
+  var gmVersion = google.maps.version.split(".");
+
+  gmVersion = parseInt(gmVersion[0] * 100, 10) + parseInt(gmVersion[1], 10);
 
   this.div_ = document.createElement("div");
   this.div_.className = this.className_;
@@ -134,6 +135,14 @@ ClusterIcon.prototype.onAdd = function () {
     cMouseDownInCluster = true;
     cDraggingMapByCluster = false;
   });
+
+// March 1, 2018: Fix for this 3.32 exp bug, https://issuetracker.google.com/issues/73571522
+// But it doesn't work with earlier releases so do a version check.
+  if (gmVersion >= 332) { // Ugly version-dependent code
+    google.maps.event.addDomListener(this.div_, "touchstart", function (e) {
+      e.stopPropagation();
+    });
+  }
 
   google.maps.event.addDomListener(this.div_, "click", function (e) {
     cMouseDownInCluster = false;
@@ -221,6 +230,7 @@ ClusterIcon.prototype.draw = function () {
     var pos = this.getPosFromLatLng_(this.center_);
     this.div_.style.top = pos.y + "px";
     this.div_.style.left = pos.x + "px";
+    this.div_.style.zIndex = google.maps.Marker.MAX_ZINDEX + 1; // Put above all unclustered markers
   }
 };
 
@@ -241,25 +251,34 @@ ClusterIcon.prototype.hide = function () {
  */
 ClusterIcon.prototype.show = function () {
   if (this.div_) {
+    var img = "";
     // NOTE: values must be specified in px units
+    var bp = this.backgroundPosition_.split(" ");
+    var spriteH = parseInt(bp[0].replace(/^\s+|\s+$/g, ""), 10);
+    var spriteV = parseInt(bp[1].replace(/^\s+|\s+$/g, ""), 10);
     var pos = this.getPosFromLatLng_(this.center_);
     this.div_.style.cssText = this.createCss(pos);
-    this.div_.innerHTML = "<div style='" +
+    img = "<img src='" + this.url_ + "' style='position: absolute; top: " + spriteV + "px; left: " + spriteH + "px; ";
+    if (this.cluster_.getMarkerClusterer().enableRetinaIcons_) {
+      img += "width: " + this.width_ + "px; height: " + this.height_ + "px;";
+    } else {
+      img += "clip: rect(" + (-1 * spriteV) + "px, " + ((-1 * spriteH) + this.width_) + "px, " +
+          ((-1 * spriteV) + this.height_) + "px, " + (-1 * spriteH) + "px);";
+    }
+    img += "'>";
+    this.div_.innerHTML = img + "<div style='" +
         "position: absolute;" +
         "top: " + this.anchorText_[0] + "px;" +
         "left: " + this.anchorText_[1] + "px;" +
-        "color: black;" +
-        "font-weight: bold;" +
-        "font-size: 15px;" +
-        "font-family: " + "Alef, sans-serif;" +
-        "border: " + this.width_ + "px solid #D63230;" +
-        "border-radius: 50%;" +
+        "color: " + this.textColor_ + ";" +
+        "font-size: " + this.textSize_ + "px;" +
+        "font-family: " + this.fontFamily_ + ";" +
+        "font-weight: " + this.fontWeight_ + ";" +
+        "font-style: " + this.fontStyle_ + ";" +
+        "text-decoration: " + this.textDecoration_ + ";" +
         "text-align: center;" +
-        "width: 32px;" +
-        "line-height: 32px;" +
-        "vertical-align: middle;" +
-        "background-color:" + "white;" +
-        "opacity:" + "0.7;" +
+        "width: " + this.width_ + "px;" +
+        "line-height:" + this.height_ + "px;" +
         "'>" + this.sums_.text + "</div>";
     if (typeof this.sums_.title === "undefined" || this.sums_.title === "") {
       this.div_.title = this.cluster_.getMarkerClusterer().getTitle();
@@ -282,7 +301,7 @@ ClusterIcon.prototype.useStyle = function (sums) {
   var index = Math.max(0, sums.index - 1);
   index = Math.min(this.styles_.length - 1, index);
   var style = this.styles_[index];
-  //this.url_ = style.url;
+  this.url_ = style.url;
   this.height_ = style.height;
   this.width_ = style.width;
   this.anchorText_ = style.anchorText || [0, 0];
@@ -318,6 +337,11 @@ ClusterIcon.prototype.createCss = function (pos) {
   style.push("cursor: pointer;");
   style.push("position: absolute; top: " + pos.y + "px; left: " + pos.x + "px;");
   style.push("width: " + this.width_ + "px; height: " + this.height_ + "px;");
+  style.push("-webkit-user-select: none;");
+  style.push("-khtml-user-select: none;");
+  style.push("-moz-user-select: none;");
+  style.push("-o-user-select: none;");
+  style.push("user-select: none;");
   return style.join("");
 };
 
@@ -723,19 +747,24 @@ MarkerClusterer.prototype.onAdd = function () {
 
   this.repaint();
 
+  this.prevZoom_ = this.getMap().getZoom();
+
   // Add the map event listeners
   this.listeners_ = [
     google.maps.event.addListener(this.getMap(), "zoom_changed", function () {
-      cMarkerClusterer.resetViewport_(false);
-      // Workaround for this Google bug: when map is at level 0 and "-" of
-      // zoom slider is clicked, a "zoom_changed" event is fired even though
-      // the map doesn't zoom out any further. In this situation, no "idle"
-      // event is triggered so the cluster markers that have been removed
-      // do not get redrawn. Same goes for a zoom in at maxZoom.
-      if (this.getZoom() === (this.get("minZoom") || 0) || this.getZoom() === this.get("maxZoom")) {
-        google.maps.event.trigger(this, "idle");
+      // Fix for bug #407
+      // Determines map type and prevents illegal zoom levels
+      var zoom = this.getMap().getZoom();
+      var minZoom = this.getMap().minZoom || 0;
+      var maxZoom = Math.min(this.getMap().maxZoom || 100,
+                             this.getMap().mapTypes[this.getMap().getMapTypeId()].maxZoom);
+      zoom = Math.min(Math.max(zoom, minZoom), maxZoom);
+
+      if (this.prevZoom_ != zoom) {
+        this.prevZoom_ = zoom;
+        this.resetViewport_(false);
       }
-    }),
+    }.bind(this)),
     google.maps.event.addListener(this.getMap(), "idle", function () {
       cMarkerClusterer.redraw_();
     })
@@ -811,7 +840,10 @@ MarkerClusterer.prototype.fitMapToMarkers = function () {
   var markers = this.getMarkers();
   var bounds = new google.maps.LatLngBounds();
   for (i = 0; i < markers.length; i++) {
-    bounds.extend(markers[i].getPosition());
+    // March 3, 2018: Bug fix -- honor the ignoreHidden property
+    if (markers[i].getVisible() || !this.getIgnoreHidden()) {
+      bounds.extend(markers[i].getPosition());
+    }
   }
 
   this.getMap().fitBounds(bounds);
@@ -1186,7 +1218,7 @@ MarkerClusterer.prototype.addMarkers = function (markers, opt_nodraw) {
     if (markers.hasOwnProperty(key)) {
       this.pushMarkerTo_(markers[key]);
     }
-  }  
+  }
   if (!opt_nodraw) {
     this.redraw_();
   }
@@ -1295,7 +1327,7 @@ MarkerClusterer.prototype.removeMarker_ = function (marker) {
  * Removes all clusters and markers from the map and also removes all markers
  *  managed by the clusterer.
  */
-MarkerClusterer.prototype.clearMarkersFromMap = function () {
+MarkerClusterer.prototype.clearMarkers = function () {
   this.resetViewport_(true);
   this.markers_ = [];
 };
@@ -1604,7 +1636,7 @@ MarkerClusterer.BATCH_SIZE_IE = 500;
  * @type {string}
  * @constant
  */
-MarkerClusterer.IMAGE_PATH = "http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclustererplus/images/m";
+MarkerClusterer.IMAGE_PATH = "../images/m";
 
 
 /**
@@ -1623,3 +1655,7 @@ MarkerClusterer.IMAGE_EXTENSION = "png";
  * @constant
  */
 MarkerClusterer.IMAGE_SIZES = [53, 56, 66, 78, 90];
+
+if (typeof module == 'object') {
+  module.exports = MarkerClusterer;
+}
