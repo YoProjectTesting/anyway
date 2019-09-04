@@ -30,7 +30,8 @@ Contributing
 * To see our GitHub issues in a nicer interface, take a look at [HuBoard](https://huboard.com/hasadna/anyway). Check out the Ready list to find a task to work on. The Backlog list there contains issues that are still not ready to be started. The Working list contains issues already started by developers (make sure to move your issue there once you start working on it), and the Done list contains completed issues that are waiting to be confirmed done and closed.
 
 ## Getting the code
-1. [Fork](https://github.com/hasadna/anyway/fork) this repository on GitHub
+1. [Fork](https://github.com/hasadna/anyway/fork) this repository on GitHub    <img src="https://i.imgur.com/VEKWBZ5.png?raw=true" alt="logo" width="200">
+
 1. `git clone https://github.com/*you*/anyway`
 1. Add the main repository as your upstream remote: `git remote add upstream https://github.com/hasadna/anyway`
 
